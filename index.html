@@ -1,0 +1,2762 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COTA FRENTE - Sistema de Controle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/animations/scale.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        primaryDark: '#4949c7',
+                        primaryLight: '#7a79e3',
+                        success: '#22c55e',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                        info: '#3b82f6'
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+
+        // Detectar modo escuro
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+    <div class="container mx-auto px-4 py-6 max-w-7xl">
+        <!-- Cabeçalho com navegação -->
+        <header class="mb-6 relative">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <div class="mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-primary" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold text-primary">COTA FRENTE</h1>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Sistema de Controle de Moagem e Produção</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button id="btnAjuda" class="px-3 py-2 bg-info text-white rounded-md hover:opacity-90 transition-opacity flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Ajuda
+                    </button>
+                    <button id="btnImprimir" class="px-3 py-2 bg-gray-600 text-white rounded-md hover:opacity-90 transition-opacity flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        Imprimir
+                    </button>
+                    <button id="btnExportar" class="px-3 py-2 bg-primary text-white rounded-md hover:opacity-90 transition-opacity flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Exportar
+                    </button>
+                    <button id="btnResetarDados" class="px-3 py-2 bg-red-500 text-white rounded-md hover:opacity-90 transition-opacity flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Resetar
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Navegação por abas -->
+            <div class="mt-6 border-b border-gray-200 dark:border-gray-700">
+                <ul class="flex flex-wrap -mb-px text-sm font-medium text-center">
+                    <li class="mr-2">
+                        <a href="#" class="nav-tab inline-block p-4 rounded-t-lg border-b-2 border-primary text-primary dark:text-primary active" data-target="painel-controle">Painel de Controle</a>
+                    </li>
+                    <li class="mr-2">
+                        <a href="#" class="nav-tab inline-block p-4 rounded-t-lg border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" data-target="painel-graficos">Gráficos e Análises</a>
+                    </li>
+                    <li class="mr-2">
+                        <a href="#" class="nav-tab inline-block p-4 rounded-t-lg border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" data-target="painel-historico">Histórico</a>
+                    </li>
+                    <li class="mr-2">
+                        <a href="#" class="nav-tab inline-block p-4 rounded-t-lg border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" data-target="painel-configuracoes">Configurações</a>
+                    </li>
+                </ul>
+            </div>
+        </header>
+
+        <!-- Conteúdo das abas -->
+        <div class="tab-content">
+            <!-- Painel de Controle -->
+            <div id="painel-controle" class="tab-pane active">
+                <!-- Informações Gerais -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6" id="info-geral">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300">Data/Hora Atual:</label>
+                            <div id="dataHoraAtual" class="text-lg font-semibold"></div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300">
+                                Tempo Decorrido:
+                                <span class="tooltip ml-1 cursor-help text-gray-500" data-tippy-content="Tempo desde o início da operação">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </span>
+                            </label>
+                            <div class="flex items-baseline">
+                                <span id="tempoDecorrido" class="text-lg font-semibold">0</span>
+                                <span class="ml-1 text-sm text-gray-500 dark:text-gray-400">horas</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="planejadoMoagem" class="block text-sm font-medium text-gray-600 dark:text-gray-300">
+                                PLANEJADO (MOAGEM):
+                                <span class="tooltip ml-1 cursor-help text-gray-500" data-tippy-content="Total planejado de moagem para o período de 24 horas">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </span>
+                            </label>
+                            <div class="relative">
+                                <input type="number" id="planejadoMoagem" class="mt-1 p-2 pl-4 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700 text-base" value="13000">
+                                <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">ton</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="dataHoraInicio" class="block text-sm font-medium text-gray-600 dark:text-gray-300">
+                                Data/Hora Início:
+                                <span class="tooltip ml-1 cursor-help text-gray-500" data-tippy-content="Momento de início da operação para cálculos de tempo decorrido">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </span>
+                            </label>
+                            <input type="datetime-local" id="dataHoraInicio" class="mt-1 p-2 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700 text-base">
+                        </div>
+                    </div>
+                    
+                    <!-- Cards KPI -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg shadow-sm border-l-4 border-primary">
+                            <div class="flex justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Média/Hora</p>
+                                    <p id="mediaHora" class="text-2xl font-bold">0.00</p>
+                                </div>
+                                <div class="self-center text-primary">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                ton/hora
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg shadow-sm border-l-4 border-info">
+                            <div class="flex justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Previsão/24h</p>
+                                    <p id="previsao24" class="text-2xl font-bold">0.00</p>
+                                </div>
+                                <div class="self-center text-info">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                ton/dia
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg shadow-sm border-l-4 border-success">
+                            <div class="flex justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Realizado Total</p>
+                                    <p id="kpi-realizado" class="text-2xl font-bold">0.00</p>
+                                </div>
+                                <div class="self-center text-success">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                toneladas
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg shadow-sm border-l-4 border-warning">
+                            <div class="flex justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Eficiência</p>
+                                    <p id="eficiencia-kpi" class="text-2xl font-bold">0%</p>
+                                </div>
+                                <div class="self-center text-warning">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="mt-2 w-full bg-gray-200 dark:bg-gray-800 rounded-full h-1.5">
+                                <div id="eficiencia-barra-kpi" class="bg-warning h-1.5 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controle de Frentes -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6" id="controle-frentes">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold">Controle de Frentes</h2>
+                        <button id="btnAdicionarFrente" class="px-3 py-1 bg-primary text-white rounded-md hover:bg-primaryDark transition-colors flex items-center text-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Nova Frente
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead>
+                                <tr class="bg-gray-100 dark:bg-gray-700">
+                                    <th class="px-4 py-2 text-left whitespace-nowrap">
+                                        <span class="tooltip cursor-help" data-tippy-content="Identificação da frente de trabalho">Frente</span>
+                                    </th>
+                                    <th class="px-4 py-2 text-left whitespace-nowrap">
+                                        <span class="tooltip cursor-help" data-tippy-content="Porcentagem da cota em relação ao total">Acumulado</span>
+                                    </th>
+                                    <th class="px-4 py-2 text-left whitespace-nowrap">
+                                        <span class="tooltip cursor-help" data-tippy-content="Valor planejado proporcional a cada frente">Planejado</span>
+                                    </th>
+                                    <th class="px-4 py-2 text-left whitespace-nowrap">
+                                        <span class="tooltip cursor-help" data-tippy-content="Cota de produção para 24 horas">Cota</span>
+                                    </th>
+                                    <th class="px-4 py-2 text-left whitespace-nowrap">
+                                        <span class="tooltip cursor-help" data-tippy-content="Toneladas por hora (Cota ÷ 24)">T/H</span>
+                                    </th>
+                                    <th class="px-4 py-2 text-left whitespace-nowrap">
+                                        <span class="tooltip cursor-help" data-tippy-content="Planejado proporcional ao tempo decorrido">Plan.(Cota)</span>
+                                    </th>
+                                    <th class="px-4 py-2 text-left whitespace-nowrap">
+                                        <span class="tooltip cursor-help" data-tippy-content="Quantidade realizada/produzida">Realizado</span>
+                                    </th>
+                                    <th class="px-4 py-2 text-left whitespace-nowrap">
+                                        <span class="tooltip cursor-help" data-tippy-content="Estoque atual">Estoque</span>
+                                    </th>
+                                    <th class="px-4 py-2 text-left whitespace-nowrap">
+                                        <span class="tooltip cursor-help" data-tippy-content="Estoque projetado para as próximas 6 horas">Estoque 6H</span>
+                                    </th>
+                                    <th class="px-4 py-2 text-left whitespace-nowrap">
+                                        <span class="tooltip cursor-help" data-tippy-content="Posição em relação a cota de produção">Posição(Cota)</span>
+                                    </th>
+                                    <th class="px-4 py-2 text-left whitespace-nowrap">
+                                        <span class="tooltip cursor-help" data-tippy-content="Posição em relação à moagem planejada">Posição(Moagem)</span>
+                                    </th>
+                                    <th class="px-4 py-2 text-center whitespace-nowrap">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaFrentes">
+                                <!-- As linhas serão geradas dinamicamente pelo JavaScript -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 font-semibold">
+                                    <td class="px-4 py-2">Total</td>
+                                    <td class="px-4 py-2" id="acumulado-total">0.00</td>
+                                    <td class="px-4 py-2" id="planejado-total">0.00</td>
+                                    <td class="px-4 py-2" id="cota-total">0.00</td>
+                                    <td class="px-4 py-2" id="th-total">0.00</td>
+                                    <td class="px-4 py-2" id="plan-cota-total">0.00</td>
+                                    <td class="px-4 py-2" id="realizado-total">0.00</td>
+                                    <td class="px-4 py-2" id="estoque-total">0.00</td>
+                                    <td class="px-4 py-2" id="estoque6h-total">0.00</td>
+                                    <td class="px-4 py-2" id="posicao-cota-total">0.00</td>
+                                    <td class="px-4 py-2" id="posicao-moagem-total">0.00</td>
+                                    <td class="px-4 py-2"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Mini-gráfico de tendência -->
+                    <div class="mt-4 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                        <h3 class="text-md font-medium mb-2">Tendência de Realização</h3>
+                        <div class="h-32">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Status Geral -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                        <h2 class="text-xl font-semibold mb-4">Status Geral</h2>
+                        <div id="statusGeral" class="p-4 rounded-lg mb-4">
+                            <div class="flex items-center">
+                                <div id="statusIcon" class="mr-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div id="statusTexto" class="text-lg font-medium">Calculando status...</div>
+                                    <div id="statusDetalhes" class="text-sm text-gray-500 dark:text-gray-400 mt-1"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <h3 class="font-medium text-lg mb-2">Tempo Restante Estimado</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Para Completar Cota</p>
+                                    <p id="tempo-restante-cota" class="text-xl font-bold">--:--</p>
+                                </div>
+                                <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Para Fim do Turno</p>
+                                    <p id="tempo-restante-turno" class="text-xl font-bold">--:--</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Alertas e Notificações -->
+                        <div class="mt-6">
+                            <h3 class="font-medium text-lg mb-2">Alertas</h3>
+                            <div id="alertas-container" class="space-y-2">
+                                <!-- Alertas serão adicionados dinamicamente -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Produção Caminhões -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                        <h2 class="text-xl font-semibold mb-4">Produção Caminhões</h2>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium mb-1">Descrição</label>
+                                <div class="font-medium mb-3">Caminhões Próprios</div>
+                                <div class="font-medium mb-3">Caminhões Terceiros</div>
+                                <div class="font-medium">Total</div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Produção</label>
+                                <div class="mb-2">
+                                    <input type="number" id="caminhoes-proprios" class="w-full p-2 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700 text-base" value="122">
+                                </div>
+                                <div class="mb-2">
+                                    <input type="number" id="caminhoes-terceiros" class="w-full p-2 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700 text-base" value="150">
+                                </div>
+                                <div id="caminhoes-total" class="font-bold text-lg p-1">272</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Gráfico de distribuição -->
+                        <div class="mt-4 mb-4">
+                            <h3 class="text-md font-medium mb-2">Distribuição</h3>
+                            <div class="flex h-8 w-full rounded-md overflow-hidden">
+                                <div id="grafico-proprios" class="bg-primary text-white text-xs flex items-center justify-center transition-all duration-500" style="width: 45%;">
+                                    <span id="percentual-proprios">45%</span>
+                                </div>
+                                <div id="grafico-terceiros" class="bg-info text-white text-xs flex items-center justify-center transition-all duration-500" style="width: 55%;">
+                                    <span id="percentual-terceiros">55%</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <div>Próprios</div>
+                                <div>Terceiros</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Eficiência e Previsão -->
+                        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-medium">Eficiência Geral</h3>
+                                <div id="eficiencia-valor" class="text-lg font-bold">0%</div>
+                            </div>
+                            <div class="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                <div id="eficiencia-barra" class="bg-primary h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <div>0%</div>
+                                <div>50%</div>
+                                <div>100%</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Taxa de Entrega -->
+                        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <h3 class="text-lg font-medium mb-2">Taxa de Entrega (Caminhões/Hora)</h3>
+                            <div class="text-3xl font-bold" id="taxa-entrega">0.0</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                Baseado no tempo decorrido e total de caminhões
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gráficos e Análises -->
+            <div id="painel-graficos" class="tab-pane hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- Gráfico de Progresso por Frente -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                        <h2 class="text-xl font-semibold mb-4">Progresso por Frente</h2>
+                        <div class="h-80">
+                            <canvas id="progressoChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Gráfico de Comparação Planejado vs Realizado -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                        <h2 class="text-xl font-semibold mb-4">Planejado vs Realizado</h2>
+                        <div class="h-80">
+                            <canvas id="comparacaoChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 gap-6">
+                    <!-- Gráfico de Tendência Temporal -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                        <h2 class="text-xl font-semibold mb-4">Evolução Temporal</h2>
+                        <div class="mb-4">
+                            <label class="text-sm font-medium">Período:</label>
+                            <div class="flex space-x-2 mt-1">
+                                <button class="px-3 py-1 bg-primary text-white text-sm rounded-md" data-period="12h">12h</button>
+                                <button class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-md" data-period="24h">24h</button>
+                                <button class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-md" data-period="7d">7d</button>
+                            </div>
+                        </div>
+                        <div class="h-96">
+                            <canvas id="evolucaoChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Análise de Eficiência -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mt-6">
+                    <h2 class="text-xl font-semibold mb-4">Análise de Eficiência</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                            <h3 class="text-lg font-medium mb-2">Eficiência Global</h3>
+                            <div class="text-4xl font-bold text-center my-4" id="analise-eficiencia-global">0%</div>
+                            <div class="mt-2 w-full bg-gray-200 dark:bg-gray-600 rounded-full h-3">
+                                <div id="analise-eficiencia-global-barra" class="bg-primary h-3 rounded-full" style="width: 0%"></div>
+                            </div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-3 text-center" id="analise-eficiencia-texto">
+                                Analisando dados...
+                            </p>
+                        </div>
+                        
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                            <h3 class="text-lg font-medium mb-2">Eficiência por Frente</h3>
+                            <div class="space-y-3 mt-4" id="analise-eficiencia-frentes">
+                                <!-- Conteúdo será preenchido pelo JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                            <h3 class="text-lg font-medium mb-2">Projeções</h3>
+                            <div class="space-y-4 mt-4">
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Estimativa Final 24h</p>
+                                    <p class="text-xl font-bold" id="projecao-final">0 ton</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Diferença do Planejado</p>
+                                    <p class="text-xl font-bold" id="projecao-diferenca">0 ton</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Recomendação</p>
+                                    <p class="text-md font-medium mt-1" id="projecao-recomendacao">
+                                        Analisando dados para gerar recomendação...
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Histórico -->
+            <div id="painel-historico" class="tab-pane hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold">Histórico de Snapshots</h2>
+                        <button id="btnCriarSnapshot" class="px-3 py-2 bg-primary text-white rounded-md hover:bg-primaryDark transition-colors flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Criar Snapshot
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead>
+                                <tr class="bg-gray-100 dark:bg-gray-700">
+                                    <th class="px-4 py-2 text-left">Data/Hora</th>
+                                    <th class="px-4 py-2 text-left">Descrição</th>
+                                    <th class="px-4 py-2 text-left">Tempo Decorrido</th>
+                                    <th class="px-4 py-2 text-left">Realizado Total</th>
+                                    <th class="px-4 py-2 text-left">Posição (Cota)</th>
+                                    <th class="px-4 py-2 text-left">Eficiência</th>
+                                    <th class="px-4 py-2 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaHistorico">
+                                <!-- Conteúdo será preenchido pelo JavaScript -->
+                                <tr class="border-b dark:border-gray-700">
+                                    <td colspan="7" class="px-4 py-4 text-center text-gray-500 dark:text-gray-400">
+                                        Nenhum snapshot criado ainda. Use o botão "Criar Snapshot" para salvar o estado atual.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Histórico de Evolução -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                    <h2 class="text-xl font-semibold mb-4">Evolução Histórica</h2>
+                    <div class="h-96">
+                        <canvas id="historicoChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Configurações -->
+            <div id="painel-configuracoes" class="tab-pane hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
+                    <h2 class="text-xl font-semibold mb-4">Configurações Gerais</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-medium mb-3">Preferências</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="cfg-atualizar-automatico" class="rounded text-primary focus:ring-primary" checked>
+                                        <span class="ml-2">Atualizar automaticamente</span>
+                                    </label>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 ml-6 mt-1">
+                                        Atualiza os cálculos a cada minuto
+                                    </p>
+                                </div>
+                                
+                                <div>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="cfg-salvar-dados" class="rounded text-primary focus:ring-primary" checked>
+                                        <span class="ml-2">Salvar dados automaticamente</span>
+                                    </label>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 ml-6 mt-1">
+                                        Salva os dados no navegador para uso futuro
+                                    </p>
+                                </div>
+                                
+                                <div>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="cfg-mostrar-alertas" class="rounded text-primary focus:ring-primary" checked>
+                                        <span class="ml-2">Mostrar alertas</span>
+                                    </label>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 ml-6 mt-1">
+                                        Exibe alertas quando houver desvios significativos
+                                    </p>
+                                </div>
+                                
+                                <div>
+                                    <label for="cfg-intervalo-atualizacao" class="block text-sm font-medium">Intervalo de atualização:</label>
+                                    <select id="cfg-intervalo-atualizacao" class="mt-1 p-2 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700">
+                                        <option value="30">30 segundos</option>
+                                        <option value="60" selected>1 minuto</option>
+                                        <option value="300">5 minutos</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-lg font-medium mb-3">Limiares de Alerta</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="cfg-limiar-critico" class="block text-sm font-medium">Desvio crítico (%):</label>
+                                    <input type="number" id="cfg-limiar-critico" class="mt-1 p-2 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700" value="20">
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        Percentual abaixo do planejado para alertar como crítico
+                                    </p>
+                                </div>
+                                
+                                <div>
+                                    <label for="cfg-limiar-atencao" class="block text-sm font-medium">Desvio atenção (%):</label>
+                                    <input type="number" id="cfg-limiar-atencao" class="mt-1 p-2 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700" value="10">
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        Percentual abaixo do planejado para alertar como atenção
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <h3 class="text-lg font-medium mb-3">Gerenciamento de Dados</h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label for="cfg-backup" class="block text-sm font-medium mb-2">Backup de Dados</label>
+                                <div class="flex space-x-2">
+                                    <button id="btnExportarBackup" class="px-3 py-2 bg-primary text-white rounded-md hover:bg-primaryDark transition-colors flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                        </svg>
+                                        Exportar Backup
+                                    </button>
+                                    <label for="importarBackup" class="px-3 py-2 bg-info text-white rounded-md hover:opacity-90 transition-opacity cursor-pointer flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                        </svg>
+                                        Importar Backup
+                                        <input type="file" id="importarBackup" class="hidden" accept=".json">
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Limpar Dados</label>
+                                <div class="flex space-x-2">
+                                    <button id="btnLimparSnapshots" class="px-3 py-2 bg-danger text-white rounded-md hover:opacity-90 transition-opacity">
+                                        Limpar Snapshots
+                                    </button>
+                                    <button id="btnLimparTodosDados" class="px-3 py-2 bg-danger text-white rounded-md hover:opacity-90 transition-opacity">
+                                        Limpar Todos os Dados
+                                    </button>
+                                </div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                                    Atenção: Essas ações não podem ser desfeitas!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <button id="btnSalvarConfiguracoes" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primaryDark transition-colors">
+                            Salvar Configurações
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+                    <h2 class="text-xl font-semibold mb-4">Sobre o Sistema</h2>
+                    
+                    <div class="text-gray-700 dark:text-gray-300 space-y-2">
+                        <p><strong>COTA FRENTE</strong> - Sistema de Controle de Moagem e Produção</p>
+                        <p>Versão: 2.0.0</p>
+                        <p>Atualizado em: Julho 2023</p>
+                        <p class="mt-4">Este sistema foi projetado para gerenciar e monitorar a produção, permitindo o controle de frentes de trabalho, cotas e eficiência.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modais -->
+        <!-- Modal de Confirmação -->
+        <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+                <h3 class="text-xl font-bold mb-4">Confirmar Ação</h3>
+                <p id="confirmMessage" class="mb-6">Tem certeza que deseja continuar?</p>
+                <div class="flex justify-end space-x-2">
+                    <button id="cancelAction" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors">Cancelar</button>
+                    <button id="confirmAction" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors">Confirmar</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal de Nova Frente -->
+        <div id="novaFrenteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+                <h3 class="text-xl font-bold mb-4">Adicionar Nova Frente</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label for="novaFrenteId" class="block text-sm font-medium">ID da Frente:</label>
+                        <input type="text" id="novaFrenteId" class="mt-1 p-2 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700 text-base" placeholder="Ex: F4010">
+                    </div>
+                    <div>
+                        <label for="novaFrenteCota" class="block text-sm font-medium">Cota:</label>
+                        <input type="number" id="novaFrenteCota" class="mt-1 p-2 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700 text-base" value="1500">
+                    </div>
+                    <div>
+                        <label for="novaFrenteRealizado" class="block text-sm font-medium">Realizado:</label>
+                        <input type="number" id="novaFrenteRealizado" class="mt-1 p-2 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700 text-base" value="0">
+                    </div>
+                    <div>
+                        <label for="novaFrenteEstoque" class="block text-sm font-medium">Estoque:</label>
+                        <input type="number" id="novaFrenteEstoque" class="mt-1 p-2 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700 text-base" value="0">
+                    </div>
+                    <div>
+                        <label for="novaFrenteEstoque6h" class="block text-sm font-medium">Estoque 6H:</label>
+                        <input type="number" id="novaFrenteEstoque6h" class="mt-1 p-2 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700 text-base" value="0">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-2 mt-6">
+                    <button id="cancelarNovaFrente" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors">Cancelar</button>
+                    <button id="salvarNovaFrente" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primaryDark transition-colors">Adicionar</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal de Snapshot -->
+        <div id="snapshotModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+                <h3 class="text-xl font-bold mb-4">Criar Snapshot</h3>
+                <div>
+                    <label for="snapshotDescricao" class="block text-sm font-medium mb-1">Descrição:</label>
+                    <input type="text" id="snapshotDescricao" class="p-2 w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700 text-base" placeholder="Ex: Fim do turno matutino">
+                </div>
+                <div class="flex justify-end space-x-2 mt-6">
+                    <button id="cancelarSnapshot" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors">Cancelar</button>
+                    <button id="salvarSnapshot" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primaryDark transition-colors">Criar Snapshot</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Toast de Notificação -->
+        <div id="toast" class="fixed bottom-4 right-4 bg-primary text-white px-6 py-3 rounded-md shadow-lg transform transition-transform duration-300 translate-y-full opacity-0 flex items-center">
+            <span id="toastMessage">Operação realizada com sucesso!</span>
+        </div>
+    </div>
+
+    <script>
+        // ===== Constantes e Variáveis Globais =====
+        const LOCAL_STORAGE_KEY = 'cotaFrenteData';
+        const LOCAL_STORAGE_SNAPSHOTS_KEY = 'cotaFrenteSnapshots';
+        const LOCAL_STORAGE_CONFIG_KEY = 'cotaFrenteConfig';
+        const LOCAL_STORAGE_SERIES_KEY = 'cotaFrenteSeries';
+        
+        let FRENTES = ['f4001', 'f4002', 'f4007', 'f4009']; // Array dinâmico de frentes
+        let intervaloAtualizacao = null;
+        let snapshots = [];
+        let configSistema = {
+            atualizarAutomatico: true,
+            salvarDados: true,
+            mostrarAlertas: true,
+            intervaloAtualizacao: 60,
+            limiarCritico: 20,
+            limiarAtencao: 10
+        };
+        
+        // Dados para gráficos de séries temporais
+        let seriesTempo = {
+            timestamps: [],
+            realizado: [],
+            planejado: [],
+            eficiencia: []
+        };
+        
+        // Referências aos gráficos
+        let trendChart = null;
+        let progressoChart = null;
+        let comparacaoChart = null;
+        let evolucaoChart = null;
+        let historicoChart = null;
+        
+        // ===== Funções Auxiliares =====
+        
+        /**
+         * Formata um número como moeda
+         * @param {number} valor - Valor a ser formatado
+         * @param {number} casasDecimais - Número de casas decimais
+         * @returns {string} Valor formatado
+         */
+        function formatarNumero(valor, casasDecimais = 2) {
+            return parseFloat(valor).toFixed(casasDecimais);
+        }
+        
+        /**
+         * Formata o tempo em horas:minutos
+         * @param {number} horas - Tempo em horas
+         * @returns {string} Tempo formatado
+         */
+        function formatarTempo(horas) {
+            if (horas === null || isNaN(horas) || !isFinite(horas)) {
+                return "--:--";
+            }
+            
+            const horasInt = Math.floor(horas);
+            const minutos = Math.floor((horas - horasInt) * 60);
+            
+            return `${horasInt.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
+        }
+        
+        /**
+         * Gera uma cor aleatória em formato hexadecimal
+         * @returns {string} Cor em formato hexadecimal
+         */
+        function gerarCorAleatoria() {
+            const cores = [
+                '#4f46e5', '#0891b2', '#0d9488', '#059669', '#65a30d', 
+                '#ca8a04', '#ea580c', '#dc2626', '#be185d', '#7e22ce'
+            ];
+            return cores[Math.floor(Math.random() * cores.length)];
+        }
+        
+        /**
+         * Obtém a cor associada a uma frente
+         * @param {string} frente - ID da frente
+         * @returns {string} Cor em formato hexadecimal
+         */
+        function getCorFrente(frente) {
+            const mapeamentoCores = {
+                'f4001': '#4f46e5', // indigo
+                'f4002': '#0891b2', // cyan
+                'f4007': '#059669', // emerald
+                'f4009': '#ca8a04'  // amber
+            };
+            
+            return mapeamentoCores[frente] || gerarCorAleatoria();
+        }
+        
+        /**
+         * Salva os dados do formulário no localStorage
+         */
+        function salvarDados() {
+            if (!window.localStorage || !configSistema.salvarDados) return;
+            
+            const dados = {
+                planejadoMoagem: document.getElementById('planejadoMoagem').value,
+                dataHoraInicio: document.getElementById('dataHoraInicio').value,
+                frentes: {},
+                caminhoes: {
+                    proprios: document.getElementById('caminhoes-proprios').value,
+                    terceiros: document.getElementById('caminhoes-terceiros').value
+                }
+            };
+            
+            // Salvar dados de cada frente
+            FRENTES.forEach(frente => {
+                dados.frentes[frente] = {
+                    cota: document.getElementById(`cota-${frente}`)?.value || 0,
+                    realizado: document.getElementById(`realizado-${frente}`)?.value || 0,
+                    estoque: document.getElementById(`estoque-${frente}`)?.value || 0,
+                    estoque6h: document.getElementById(`estoque6h-${frente}`)?.value || 0
+                };
+            });
+            
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dados));
+            localStorage.setItem(LOCAL_STORAGE_SNAPSHOTS_KEY, JSON.stringify(snapshots));
+            localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(configSistema));
+            localStorage.setItem(LOCAL_STORAGE_SERIES_KEY, JSON.stringify(seriesTempo));
+        }
+        
+        /**
+         * Carrega os dados do localStorage
+         */
+        function carregarDados() {
+            if (!window.localStorage) return;
+            
+            // Carregar configurações
+            const configSalvo = localStorage.getItem(LOCAL_STORAGE_CONFIG_KEY);
+            if (configSalvo) {
+                try {
+                    const configCarregado = JSON.parse(configSalvo);
+                    configSistema = { ...configSistema, ...configCarregado };
+                    
+                    // Atualizar UI de configurações
+                    document.getElementById('cfg-atualizar-automatico').checked = configSistema.atualizarAutomatico;
+                    document.getElementById('cfg-salvar-dados').checked = configSistema.salvarDados;
+                    document.getElementById('cfg-mostrar-alertas').checked = configSistema.mostrarAlertas;
+                    document.getElementById('cfg-intervalo-atualizacao').value = configSistema.intervaloAtualizacao;
+                    document.getElementById('cfg-limiar-critico').value = configSistema.limiarCritico;
+                    document.getElementById('cfg-limiar-atencao').value = configSistema.limiarAtencao;
+                } catch (erro) {
+                    console.error('Erro ao carregar configurações:', erro);
+                }
+            }
+            
+            // Carregar snapshots
+            const snapshotsSalvos = localStorage.getItem(LOCAL_STORAGE_SNAPSHOTS_KEY);
+            if (snapshotsSalvos) {
+                try {
+                    snapshots = JSON.parse(snapshotsSalvos);
+                    atualizarTabelaHistorico();
+                } catch (erro) {
+                    console.error('Erro ao carregar snapshots:', erro);
+                }
+            }
+            
+            // Carregar séries temporais
+            const seriesSalvas = localStorage.getItem(LOCAL_STORAGE_SERIES_KEY);
+            if (seriesSalvas) {
+                try {
+                    seriesTempo = JSON.parse(seriesSalvas);
+                } catch (erro) {
+                    console.error('Erro ao carregar séries temporais:', erro);
+                }
+            }
+            
+            // Carregar dados principais
+            const dadosSalvos = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (!dadosSalvos) return;
+            
+            try {
+                const dados = JSON.parse(dadosSalvos);
+                
+                // Restaurar dados gerais
+                document.getElementById('planejadoMoagem').value = dados.planejadoMoagem || 13000;
+                document.getElementById('dataHoraInicio').value = dados.dataHoraInicio || '';
+                
+                // Reconstruir lista de frentes a partir dos dados salvos
+                if (dados.frentes) {
+                    FRENTES = Object.keys(dados.frentes);
+                    gerarLinhasTabela();
+                    
+                    // Restaurar dados de cada frente
+                    FRENTES.forEach(frente => {
+                        if (dados.frentes[frente]) {
+                            document.getElementById(`cota-${frente}`).value = dados.frentes[frente].cota || 0;
+                            document.getElementById(`realizado-${frente}`).value = dados.frentes[frente].realizado || 0;
+                            document.getElementById(`estoque-${frente}`).value = dados.frentes[frente].estoque || 0;
+                            document.getElementById(`estoque6h-${frente}`).value = dados.frentes[frente].estoque6h || 0;
+                        }
+                    });
+                }
+                
+                // Restaurar dados de caminhões
+                if (dados.caminhoes) {
+                    document.getElementById('caminhoes-proprios').value = dados.caminhoes.proprios || 0;
+                    document.getElementById('caminhoes-terceiros').value = dados.caminhoes.terceiros || 0;
+                }
+                
+                mostrarToast('Dados carregados com sucesso!');
+            } catch (erro) {
+                console.error('Erro ao carregar dados:', erro);
+                mostrarToast('Erro ao carregar dados. Verifique o console para mais detalhes.', 'erro');
+            }
+        }
+        
+        /**
+         * Mostra uma notificação toast
+         * @param {string} mensagem - Mensagem a ser exibida
+         * @param {string} tipo - Tipo da mensagem ('sucesso', 'erro', 'info')
+         */
+        function mostrarToast(mensagem, tipo = 'sucesso') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = mensagem;
+            
+            // Definir cor de acordo com o tipo
+            if (tipo === 'erro') {
+                toast.classList.remove('bg-primary', 'bg-info');
+                toast.classList.add('bg-danger');
+            } else if (tipo === 'info') {
+                toast.classList.remove('bg-primary', 'bg-danger');
+                toast.classList.add('bg-info');
+            } else {
+                toast.classList.remove('bg-danger', 'bg-info');
+                toast.classList.add('bg-primary');
+            }
+            
+            toast.classList.remove('translate-y-full', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-full', 'opacity-0');
+            }, 3000);
+        }
+        
+        /**
+         * Mostra o modal de confirmação
+         * @param {string} mensagem - Mensagem de confirmação
+         * @param {Function} onConfirm - Função a ser chamada quando confirmado
+         */
+        function mostrarConfirmacao(mensagem, onConfirm) {
+            const modal = document.getElementById('confirmModal');
+            const mensagemElement = document.getElementById('confirmMessage');
+            const confirmarBtn = document.getElementById('confirmAction');
+            const cancelarBtn = document.getElementById('cancelAction');
+            
+            mensagemElement.textContent = mensagem;
+            modal.classList.remove('hidden');
+            
+            // Limpar listeners antigos
+            const novoConfirmarBtn = confirmarBtn.cloneNode(true);
+            const novoCancelarBtn = cancelarBtn.cloneNode(true);
+            confirmarBtn.parentNode.replaceChild(novoConfirmarBtn, confirmarBtn);
+            cancelarBtn.parentNode.replaceChild(novoCancelarBtn, cancelarBtn);
+            
+            // Adicionar novos listeners
+            novoConfirmarBtn.addEventListener('click', () => {
+                onConfirm();
+                modal.classList.add('hidden');
+            });
+            
+            novoCancelarBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+        }
+        
+        /**
+         * Exporta os dados para um arquivo CSV
+         */
+        function exportarCSV() {
+            // Preparar cabeçalho
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Frente,Acumulado,Planejado,Cota,T/H,Plan.(Cota),Realizado,Estoque,Estoque 6H,Posição(Cota),Posição(Moagem)\n";
+            
+            // Adicionar dados de cada frente
+            FRENTES.forEach(frente => {
+                const linha = [
+                    frente.toUpperCase(),
+                    document.getElementById(`acumulado-${frente}`)?.textContent || "0.00",
+                    document.getElementById(`planejado-${frente}`)?.textContent || "0.00",
+                    document.getElementById(`cota-${frente}`)?.value || "0.00",
+                    document.getElementById(`th-${frente}`)?.textContent || "0.00",
+                    document.getElementById(`plan-cota-${frente}`)?.textContent || "0.00",
+                    document.getElementById(`realizado-${frente}`)?.value || "0.00",
+                    document.getElementById(`estoque-${frente}`)?.value || "0.00",
+                    document.getElementById(`estoque6h-${frente}`)?.value || "0.00",
+                    document.getElementById(`posicao-cota-${frente}`)?.textContent || "0.00",
+                    document.getElementById(`posicao-moagem-${frente}`)?.textContent || "0.00"
+                ].join(",");
+                csvContent += linha + "\n";
+            });
+            
+            // Adicionar linha de total
+            const linhaTotal = [
+                "TOTAL",
+                document.getElementById('acumulado-total').textContent,
+                document.getElementById('planejado-total').textContent,
+                document.getElementById('cota-total').textContent,
+                document.getElementById('th-total').textContent,
+                document.getElementById('plan-cota-total').textContent,
+                document.getElementById('realizado-total').textContent,
+                document.getElementById('estoque-total').textContent,
+                document.getElementById('estoque6h-total').textContent,
+                document.getElementById('posicao-cota-total').textContent,
+                document.getElementById('posicao-moagem-total').textContent
+            ].join(",");
+            csvContent += linhaTotal + "\n\n";
+            
+            // Adicionar seção de projeções
+            csvContent += "PROJEÇÕES\n";
+            csvContent += "Média/Hora," + document.getElementById('mediaHora').textContent + "\n";
+            csvContent += "Previsão/24," + document.getElementById('previsao24').textContent + "\n\n";
+            
+            // Adicionar seção de caminhões
+            csvContent += "PRODUÇÃO CAMINHÕES\n";
+            csvContent += "Próprios," + document.getElementById('caminhoes-proprios').value + "," + document.getElementById('percentual-proprios').textContent + "\n";
+            csvContent += "Terceiros," + document.getElementById('caminhoes-terceiros').value + "," + document.getElementById('percentual-terceiros').textContent + "\n";
+            csvContent += "Total," + document.getElementById('caminhoes-total').textContent + "\n";
+            
+            // Criar o link para download
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            
+            // Data atual formatada para o nome do arquivo
+            const dataAtual = new Date();
+            const dataFormatada = dataAtual.toISOString().slice(0,10).replace(/-/g,"");
+            const horaFormatada = dataAtual.toTimeString().slice(0,8).replace(/:/g,"");
+            
+            link.setAttribute("download", `cota_frente_${dataFormatada}_${horaFormatada}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            mostrarToast('Arquivo CSV exportado com sucesso!');
+        }
+        
+        /**
+         * Exporta configurações e dados como backup
+         */
+        function exportarBackup() {
+            const backup = {
+                dados: JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}'),
+                snapshots: snapshots,
+                config: configSistema,
+                series: seriesTempo,
+                exportadoEm: new Date().toISOString(),
+                versao: '2.0.0'
+            };
+            
+            // Criar o link para download
+            const jsonString = JSON.stringify(backup, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            
+            // Data atual formatada para o nome do arquivo
+            const dataAtual = new Date();
+            const dataFormatada = dataAtual.toISOString().slice(0,10).replace(/-/g,"");
+            
+            link.setAttribute("download", `cota_frente_backup_${dataFormatada}.json`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            mostrarToast('Backup exportado com sucesso!');
+        }
+        
+        /**
+         * Importa backup de um arquivo JSON
+         * @param {File} arquivo - Arquivo de backup
+         */
+        function importarBackup(arquivo) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const backup = JSON.parse(e.target.result);
+                    
+                    // Verificar se é um backup válido
+                    if (!backup.dados || !backup.config) {
+                        mostrarToast('Arquivo de backup inválido', 'erro');
+                        return;
+                    }
+                    
+                    // Restaurar dados
+                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(backup.dados));
+                    localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(backup.config));
+                    
+                    // Restaurar snapshots se existirem
+                    if (backup.snapshots) {
+                        snapshots = backup.snapshots;
+                        localStorage.setItem(LOCAL_STORAGE_SNAPSHOTS_KEY, JSON.stringify(snapshots));
+                        atualizarTabelaHistorico();
+                    }
+                    
+                    // Restaurar séries temporais se existirem
+                    if (backup.series) {
+                        seriesTempo = backup.series;
+                        localStorage.setItem(LOCAL_STORAGE_SERIES_KEY, JSON.stringify(seriesTempo));
+                    }
+                    
+                    // Recarregar a página para aplicar as alterações
+                    mostrarToast('Backup importado com sucesso! Recarregando página...', 'sucesso');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } catch (erro) {
+                    console.error('Erro ao importar backup:', erro);
+                    mostrarToast('Erro ao importar backup', 'erro');
+                }
+            };
+            
+            reader.readAsText(arquivo);
+        }
+        
+        /**
+         * Redefine todos os dados de entrada para os valores padrão
+         */
+        function resetarDados() {
+            // Resetar planejado de moagem
+            document.getElementById('planejadoMoagem').value = 13000;
+            
+            // Inicializar data/hora de início
+            inicializarDataHoraInicio();
+            
+            // Restaurar lista de frentes original
+            FRENTES = ['f4001', 'f4002', 'f4007', 'f4009'];
+            gerarLinhasTabela();
+            
+            // Resetar valores para cada frente
+            document.getElementById('cota-f4001').value = 1500;
+            document.getElementById('realizado-f4001').value = 0;
+            document.getElementById('estoque-f4001').value = 137.44;
+            document.getElementById('estoque6h-f4001').value = 0;
+            
+            document.getElementById('cota-f4002').value = 2000;
+            document.getElementById('realizado-f4002').value = 0;
+            document.getElementById('estoque-f4002').value = 71.64;
+            document.getElementById('estoque6h-f4002').value = 0;
+            
+            document.getElementById('cota-f4007').value = 2000;
+            document.getElementById('realizado-f4007').value = 300;
+            document.getElementById('estoque-f4007').value = 0;
+            document.getElementById('estoque6h-f4007').value = 0;
+            
+            document.getElementById('cota-f4009').value = 1500;
+            document.getElementById('realizado-f4009').value = 500;
+            document.getElementById('estoque-f4009').value = 0;
+            document.getElementById('estoque6h-f4009').value = 0;
+            
+            // Resetar valores de caminhões
+            document.getElementById('caminhoes-proprios').value = 122;
+            document.getElementById('caminhoes-terceiros').value = 150;
+            
+            // Limpar localStorage
+            if (window.localStorage) {
+                localStorage.removeItem(LOCAL_STORAGE_KEY);
+            }
+            
+            // Redefinir séries temporais
+            seriesTempo = {
+                timestamps: [],
+                realizado: [],
+                planejado: [],
+                eficiencia: []
+            };
+            
+            // Recalcular todos os valores
+            calcularTudo();
+            
+            // Atualizar gráficos
+            atualizarGraficos();
+            
+            mostrarToast('Todos os dados foram resetados!');
+        }
+        
+        /**
+         * Limpa apenas os snapshots do histórico
+         */
+        function limparSnapshots() {
+            snapshots = [];
+            if (window.localStorage) {
+                localStorage.setItem(LOCAL_STORAGE_SNAPSHOTS_KEY, JSON.stringify(snapshots));
+            }
+            atualizarTabelaHistorico();
+            mostrarToast('Snapshots limpos com sucesso!');
+        }
+        
+        /**
+         * Limpa todos os dados armazenados
+         */
+        function limparTodosDados() {
+            if (window.localStorage) {
+                localStorage.removeItem(LOCAL_STORAGE_KEY);
+                localStorage.removeItem(LOCAL_STORAGE_SNAPSHOTS_KEY);
+                localStorage.removeItem(LOCAL_STORAGE_CONFIG_KEY);
+                localStorage.removeItem(LOCAL_STORAGE_SERIES_KEY);
+            }
+            
+            mostrarToast('Todos os dados foram limpos! Recarregando página...', 'info');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        }
+        
+        /**
+         * Atualiza a tabela de frentes, gerando as linhas dinâmicamente
+         */
+        function gerarLinhasTabela() {
+            const tbody = document.getElementById('tabelaFrentes');
+            tbody.innerHTML = '';
+            
+            FRENTES.forEach(frente => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b dark:border-gray-700';
+                tr.id = `linha-${frente}`;
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-2">${frente.toUpperCase()}</td>
+                    <td class="px-4 py-2" id="acumulado-${frente}">0.00</td>
+                    <td class="px-4 py-2" id="planejado-${frente}">0.00</td>
+                    <td class="px-4 py-2">
+                        <input type="number" id="cota-${frente}" class="w-24 p-1 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700 text-base" value="0">
+                    </td>
+                    <td class="px-4 py-2" id="th-${frente}">0.00</td>
+                    <td class="px-4 py-2" id="plan-cota-${frente}">0.00</td>
+                    <td class="px-4 py-2">
+                        <input type="number" id="realizado-${frente}" class="w-24 p-1 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700 text-base" value="0">
+                    </td>
+                    <td class="px-4 py-2">
+                        <input type="number" id="estoque-${frente}" class="w-24 p-1 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700 text-base" value="0">
+                    </td>
+                    <td class="px-4 py-2">
+                        <input type="number" id="estoque6h-${frente}" class="w-24 p-1 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-700 text-base" value="0">
+                    </td>
+                    <td class="px-4 py-2" id="posicao-cota-${frente}">0.00</td>
+                    <td class="px-4 py-2" id="posicao-moagem-${frente}">0.00</td>
+                    <td class="px-4 py-2 text-center">
+                        <button class="text-danger hover:text-red-700 transition-colors btn-remover-frente" data-frente="${frente}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(tr);
+            });
+            
+            // Adicionar event listeners aos inputs da tabela
+            const inputs = document.querySelectorAll('#tabelaFrentes input');
+            inputs.forEach(input => {
+                input.addEventListener('input', calcularTudo);
+            });
+            
+            // Adicionar event listeners aos botões de remover frente
+            const botoesRemover = document.querySelectorAll('.btn-remover-frente');
+            botoesRemover.forEach(botao => {
+                botao.addEventListener('click', function() {
+                    const frente = this.getAttribute('data-frente');
+                    removerFrente(frente);
+                });
+            });
+        }
+        
+        /**
+         * Adiciona uma nova frente à tabela
+         */
+        function adicionarFrente() {
+            const id = document.getElementById('novaFrenteId').value.toLowerCase();
+            const cota = document.getElementById('novaFrenteCota').value;
+            const realizado = document.getElementById('novaFrenteRealizado').value;
+            const estoque = document.getElementById('novaFrenteEstoque').value;
+            const estoque6h = document.getElementById('novaFrenteEstoque6h').value;
+            
+            // Validar ID da frente
+            if (!id) {
+                mostrarToast('ID da frente é obrigatório', 'erro');
+                return;
+            }
+            
+            // Verificar se a frente já existe
+            if (FRENTES.includes(id)) {
+                mostrarToast('Frente já existe', 'erro');
+                return;
+            }
+            
+            // Adicionar à lista de frentes
+            FRENTES.push(id);
+            
+            // Regenerar tabela
+            gerarLinhasTabela();
+            
+            // Definir valores
+            document.getElementById(`cota-${id}`).value = cota;
+            document.getElementById(`realizado-${id}`).value = realizado;
+            document.getElementById(`estoque-${id}`).value = estoque;
+            document.getElementById(`estoque6h-${id}`).value = estoque6h;
+            
+            // Fechar modal
+            document.getElementById('novaFrenteModal').classList.add('hidden');
+            
+            // Recalcular
+            calcularTudo();
+            
+            // Atualizar gráficos
+            atualizarGraficos();
+            
+            mostrarToast(`Frente ${id.toUpperCase()} adicionada com sucesso!`);
+        }
+        
+        /**
+         * Remove uma frente da tabela
+         * @param {string} frente - ID da frente a ser removida
+         */
+        function removerFrente(frente) {
+            mostrarConfirmacao(`Tem certeza que deseja remover a frente ${frente.toUpperCase()}?`, () => {
+                // Remover da lista de frentes
+                FRENTES = FRENTES.filter(f => f !== frente);
+                
+                // Regenerar tabela
+                gerarLinhasTabela();
+                
+                // Recalcular
+                calcularTudo();
+                
+                // Atualizar gráficos
+                atualizarGraficos();
+                
+                mostrarToast(`Frente ${frente.toUpperCase()} removida com sucesso!`);
+            });
+        }
+        
+        /**
+         * Cria um novo snapshot dos dados atuais
+         */
+        function criarSnapshot() {
+            const descricao = document.getElementById('snapshotDescricao').value || `Snapshot ${snapshots.length + 1}`;
+            
+            const snapshot = {
+                id: Date.now(),
+                data: new Date().toISOString(),
+                descricao: descricao,
+                tempoDecorrido: document.getElementById('tempoDecorrido').textContent,
+                realizadoTotal: document.getElementById('realizado-total').textContent,
+                posicaoCota: document.getElementById('posicao-cota-total').textContent,
+                eficiencia: document.getElementById('eficiencia-valor').textContent,
+                frentes: {},
+                caminhoes: {
+                    proprios: document.getElementById('caminhoes-proprios').value,
+                    terceiros: document.getElementById('caminhoes-terceiros').value,
+                    total: document.getElementById('caminhoes-total').textContent
+                }
+            };
+            
+            // Salvar dados de cada frente
+            FRENTES.forEach(frente => {
+                snapshot.frentes[frente] = {
+                    cota: document.getElementById(`cota-${frente}`)?.value || 0,
+                    realizado: document.getElementById(`realizado-${frente}`)?.value || 0,
+                    estoque: document.getElementById(`estoque-${frente}`)?.value || 0,
+                    estoque6h: document.getElementById(`estoque6h-${frente}`)?.value || 0,
+                    posicaoCota: document.getElementById(`posicao-cota-${frente}`)?.textContent || 0
+                };
+            });
+            
+            // Adicionar ao array de snapshots
+            snapshots.push(snapshot);
+            
+            // Salvar no localStorage
+            if (window.localStorage) {
+                localStorage.setItem(LOCAL_STORAGE_SNAPSHOTS_KEY, JSON.stringify(snapshots));
+            }
+            
+            // Atualizar tabela de histórico
+            atualizarTabelaHistorico();
+            
+            // Atualizar gráficos de histórico
+            atualizarGraficoHistorico();
+            
+            // Fechar modal
+            document.getElementById('snapshotModal').classList.add('hidden');
+            
+            mostrarToast('Snapshot criado com sucesso!');
+        }
+        
+        /**
+         * Atualiza a tabela de histórico de snapshots
+         */
+        function atualizarTabelaHistorico() {
+            const tbody = document.getElementById('tabelaHistorico');
+            
+            if (snapshots.length === 0) {
+                tbody.innerHTML = `
+                    <tr class="border-b dark:border-gray-700">
+                        <td colspan="7" class="px-4 py-4 text-center text-gray-500 dark:text-gray-400">
+                            Nenhum snapshot criado ainda. Use o botão "Criar Snapshot" para salvar o estado atual.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            
+            // Ordenar snapshots por data (mais recente primeiro)
+            const snapshotsOrdenados = [...snapshots].sort((a, b) => new Date(b.data) - new Date(a.data));
+            
+            snapshotsOrdenados.forEach(snapshot => {
+                const data = new Date(snapshot.data);
+                
+                // Formatar data como DD/MM/YYYY HH:MM
+                const dataFormatada = `${data.getDate().toString().padStart(2, '0')}/${(data.getMonth() + 1).toString().padStart(2, '0')}/${data.getFullYear()} ${data.getHours().toString().padStart(2, '0')}:${data.getMinutes().toString().padStart(2, '0')}`;
+                
+                const tr = document.createElement('tr');
+                tr.className = 'border-b dark:border-gray-700';
+                
+                // Definir classe de cor para a posição
+                const posicaoClasse = parseFloat(snapshot.posicaoCota) >= 0 
+                    ? 'text-success font-medium' 
+                    : 'text-danger font-medium';
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-2">${dataFormatada}</td>
+                    <td class="px-4 py-2">${snapshot.descricao}</td>
+                    <td class="px-4 py-2">${snapshot.tempoDecorrido} h</td>
+                    <td class="px-4 py-2">${snapshot.realizadoTotal}</td>
+                    <td class="px-4 py-2 ${posicaoClasse}">${snapshot.posicaoCota}</td>
+                    <td class="px-4 py-2">${snapshot.eficiencia}</td>
+                    <td class="px-4 py-2 text-center">
+                        <button class="text-danger hover:text-red-700 transition-colors btn-remover-snapshot mr-2" data-id="${snapshot.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                        <button class="text-info hover:text-blue-700 transition-colors btn-visualizar-snapshot" data-id="${snapshot.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(tr);
+            });
+            
+            // Adicionar event listeners aos botões de remover snapshot
+            const botoesRemover = document.querySelectorAll('.btn-remover-snapshot');
+            botoesRemover.forEach(botao => {
+                botao.addEventListener('click', function() {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    removerSnapshot(id);
+                });
+            });
+            
+            // Adicionar event listeners aos botões de visualizar snapshot
+            const botoesVisualizar = document.querySelectorAll('.btn-visualizar-snapshot');
+            botoesVisualizar.forEach(botao => {
+                botao.addEventListener('click', function() {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    visualizarSnapshot(id);
+                });
+            });
+        }
+        
+        /**
+         * Remove um snapshot do histórico
+         * @param {number} id - ID do snapshot a ser removido
+         */
+        function removerSnapshot(id) {
+            mostrarConfirmacao('Tem certeza que deseja remover este snapshot?', () => {
+                // Remover do array
+                snapshots = snapshots.filter(s => s.id !== id);
+                
+                // Salvar no localStorage
+                if (window.localStorage) {
+                    localStorage.setItem(LOCAL_STORAGE_SNAPSHOTS_KEY, JSON.stringify(snapshots));
+                }
+                
+                // Atualizar tabela
+                atualizarTabelaHistorico();
+                
+                // Atualizar gráfico
+                atualizarGraficoHistorico();
+                
+                mostrarToast('Snapshot removido com sucesso!');
+            });
+        }
+        
+        /**
+         * Visualiza detalhes de um snapshot
+         * @param {number} id - ID do snapshot a ser visualizado
+         */
+        function visualizarSnapshot(id) {
+            const snapshot = snapshots.find(s => s.id === id);
+            
+            if (!snapshot) {
+                mostrarToast('Snapshot não encontrado', 'erro');
+                return;
+            }
+            
+            // TODO: Implementar visualização detalhada do snapshot
+            
+            // Por enquanto, apenas mostrar um alerta
+            alert(`Snapshot: ${snapshot.descricao}\nData: ${new Date(snapshot.data).toLocaleString()}\nRealizado Total: ${snapshot.realizadoTotal}\nPosição (Cota): ${snapshot.posicaoCota}\nEficiência: ${snapshot.eficiencia}`);
+        }
+        
+        /**
+         * Printa a página em formato amigável
+         */
+        function imprimirPagina() {
+            window.print();
+        }
+        
+        /**
+         * Cria o tour guiado para novos usuários
+         */
+        function iniciarTour() {
+            const driver = new Driver({
+                animate: true,
+                opacity: 0.7,
+                padding: 10,
+                allowClose: true,
+                overlayClickNext: false,
+                doneBtnText: 'Concluir',
+                closeBtnText: 'Fechar',
+                nextBtnText: 'Próximo',
+                prevBtnText: 'Anterior'
+            });
+            
+            // Defina as etapas do tour
+            driver.defineSteps([
+                {
+                    element: '#info-geral',
+                    popover: {
+                        title: 'Informações Gerais',
+                        description: 'Aqui você pode definir o planejamento de moagem e a data/hora de início para os cálculos.',
+                        position: 'bottom'
+                    }
+                },
+                {
+                    element: '#controle-frentes',
+                    popover: {
+                        title: 'Controle de Frentes',
+                        description: 'Nesta tabela você gerencia as frentes de trabalho, cotas, realizados e estoques. Os valores de posição são calculados automaticamente.',
+                        position: 'top'
+                    }
+                },
+                {
+                    element: '#btnAdicionarFrente',
+                    popover: {
+                        title: 'Adicionar Frente',
+                        description: 'Clique aqui para adicionar uma nova frente de trabalho.',
+                        position: 'left'
+                    }
+                },
+                {
+                    element: '#statusGeral',
+                    popover: {
+                        title: 'Status Geral',
+                        description: 'Esta seção mostra o status atual da produção, com alertas sobre desvios do planejado.',
+                        position: 'right'
+                    }
+                },
+                {
+                    element: '#btnCriarSnapshot',
+                    popover: {
+                        title: 'Criar Snapshot',
+                        description: 'Crie um registro do estado atual para comparação futura.',
+                        position: 'left'
+                    }
+                },
+                {
+                    element: '.nav-tab[data-target="painel-graficos"]',
+                    popover: {
+                        title: 'Gráficos e Análises',
+                        description: 'Acesse visualizações gráficas dos dados e análises de eficiência.',
+                        position: 'bottom'
+                    }
+                },
+                {
+                    element: '#btnExportar',
+                    popover: {
+                        title: 'Exportar Dados',
+                        description: 'Exporte os dados em formato CSV para análise externa.',
+                        position: 'left'
+                    }
+                }
+            ]);
+            
+            // Inicie o tour
+            driver.start();
+        }
+        
+        // ===== Funções de Gráficos =====
+        
+        /**
+         * Inicializa os gráficos
+         */
+        function inicializarGraficos() {
+            // Gráfico de tendência
+            const ctxTrend = document.getElementById('trendChart');
+            trendChart = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Realizado',
+                        data: [],
+                        borderColor: '#5D5CDE',
+                        backgroundColor: 'rgba(93, 92, 222, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: false
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Outros gráficos serão inicializados quando suas respectivas abas forem abertas
+        }
+        
+        /**
+         * Inicializa os gráficos das análises
+         */
+        function inicializarGraficosAnalise() {
+            // Gráfico de progresso por frente
+            const ctxProgresso = document.getElementById('progressoChart');
+            progressoChart = new Chart(ctxProgresso, {
+                type: 'bar',
+                data: {
+                    labels: FRENTES.map(f => f.toUpperCase()),
+                    datasets: [
+                        {
+                            label: 'Realizado',
+                            data: FRENTES.map(f => parseFloat(document.getElementById(`realizado-${f}`)?.value || 0)),
+                            backgroundColor: FRENTES.map(f => getCorFrente(f)),
+                            borderWidth: 0
+                        },
+                        {
+                            label: 'Planejado (Cota)',
+                            data: FRENTES.map(f => parseFloat(document.getElementById(`plan-cota-${f}`)?.textContent || 0)),
+                            backgroundColor: FRENTES.map(f => `${getCorFrente(f)}55`), // Versão semi-transparente
+                            borderWidth: 1,
+                            borderColor: FRENTES.map(f => getCorFrente(f))
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Toneladas'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Gráfico de comparação planejado vs realizado
+            const ctxComparacao = document.getElementById('comparacaoChart');
+            comparacaoChart = new Chart(ctxComparacao, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Realizado', 'Restante Planejado'],
+                    datasets: [{
+                        data: [
+                            parseFloat(document.getElementById('realizado-total')?.textContent || 0),
+                            Math.max(0, parseFloat(document.getElementById('planejado-total')?.textContent || 0) - parseFloat(document.getElementById('realizado-total')?.textContent || 0))
+                        ],
+                        backgroundColor: ['#5D5CDE', '#e5e7eb'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Gráfico de evolução temporal
+            const ctxEvolucao = document.getElementById('evolucaoChart');
+            evolucaoChart = new Chart(ctxEvolucao, {
+                type: 'line',
+                data: {
+                    labels: seriesTempo.timestamps.map(t => new Date(t)),
+                    datasets: [
+                        {
+                            label: 'Realizado',
+                            data: seriesTempo.realizado,
+                            borderColor: '#5D5CDE',
+                            backgroundColor: 'rgba(93, 92, 222, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Planejado',
+                            data: seriesTempo.planejado,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'hour',
+                                displayFormats: {
+                                    hour: 'HH:mm'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Tempo'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Toneladas'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        /**
+         * Inicializa o gráfico de histórico
+         */
+        function inicializarGraficoHistorico() {
+            const ctxHistorico = document.getElementById('historicoChart');
+            historicoChart = new Chart(ctxHistorico, {
+                type: 'line',
+                data: {
+                    labels: snapshots.map(s => new Date(s.data)),
+                    datasets: [
+                        {
+                            label: 'Realizado Total',
+                            data: snapshots.map(s => parseFloat(s.realizadoTotal)),
+                            borderColor: '#5D5CDE',
+                            backgroundColor: 'rgba(93, 92, 222, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Eficiência (%)',
+                            data: snapshots.map(s => parseFloat(s.eficiencia.replace('%', ''))),
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: false,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'hour',
+                                displayFormats: {
+                                    hour: 'DD/MM HH:mm'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Data/Hora'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Toneladas'
+                            }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Eficiência (%)'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        /**
+         * Atualiza todos os gráficos com os dados atuais
+         */
+        function atualizarGraficos() {
+            // Atualizar gráfico de tendência
+            atualizarGraficoTendencia();
+            
+            // Atualizar outros gráficos apenas se estiverem inicializados
+            if (progressoChart) {
+                atualizarGraficoProgresso();
+            }
+            
+            if (comparacaoChart) {
+                atualizarGraficoComparacao();
+            }
+            
+            if (evolucaoChart) {
+                atualizarGraficoEvolucao();
+            }
+            
+            if (historicoChart) {
+                atualizarGraficoHistorico();
+            }
+        }
+        
+        /**
+         * Atualiza o gráfico de tendência
+         */
+        function atualizarGraficoTendencia() {
+            if (!trendChart) return;
+            
+            // Adicionar novo ponto a cada 5 minutos
+            const agora = new Date();
+            const ultimoTimestamp = seriesTempo.timestamps.length > 0 ? new Date(seriesTempo.timestamps[seriesTempo.timestamps.length - 1]) : null;
+            
+            if (!ultimoTimestamp || (agora - ultimoTimestamp) >= (5 * 60 * 1000)) {
+                seriesTempo.timestamps.push(agora.toISOString());
+                seriesTempo.realizado.push(parseFloat(document.getElementById('realizado-total').textContent));
+                seriesTempo.planejado.push(parseFloat(document.getElementById('plan-cota-total').textContent));
+                seriesTempo.eficiencia.push(parseFloat(document.getElementById('eficiencia-valor').textContent.replace('%', '')));
+                
+                // Manter apenas os últimos 50 pontos
+                if (seriesTempo.timestamps.length > 50) {
+                    seriesTempo.timestamps.shift();
+                    seriesTempo.realizado.shift();
+                    seriesTempo.planejado.shift();
+                    seriesTempo.eficiencia.shift();
+                }
+                
+                // Salvar séries no localStorage
+                if (window.localStorage && configSistema.salvarDados) {
+                    localStorage.setItem(LOCAL_STORAGE_SERIES_KEY, JSON.stringify(seriesTempo));
+                }
+            }
+            
+            // Exibir apenas os últimos 10 pontos no gráfico de tendência
+            const numPontos = Math.min(10, seriesTempo.timestamps.length);
+            const labels = seriesTempo.timestamps.slice(-numPontos).map(t => {
+                const data = new Date(t);
+                return `${data.getHours().toString().padStart(2, '0')}:${data.getMinutes().toString().padStart(2, '0')}`;
+            });
+            const dados = seriesTempo.realizado.slice(-numPontos);
+            
+            trendChart.data.labels = labels;
+            trendChart.data.datasets[0].data = dados;
+            trendChart.update();
+        }
+        
+        /**
+         * Atualiza o gráfico de progresso por frente
+         */
+        function atualizarGraficoProgresso() {
+            progressoChart.data.labels = FRENTES.map(f => f.toUpperCase());
+            progressoChart.data.datasets[0].data = FRENTES.map(f => parseFloat(document.getElementById(`realizado-${f}`)?.value || 0));
+            progressoChart.data.datasets[1].data = FRENTES.map(f => parseFloat(document.getElementById(`plan-cota-${f}`)?.textContent || 0));
+            progressoChart.data.datasets[0].backgroundColor = FRENTES.map(f => getCorFrente(f));
+            progressoChart.data.datasets[1].backgroundColor = FRENTES.map(f => `${getCorFrente(f)}55`);
+            progressoChart.data.datasets[1].borderColor = FRENTES.map(f => getCorFrente(f));
+            progressoChart.update();
+        }
+        
+        /**
+         * Atualiza o gráfico de comparação planejado vs realizado
+         */
+        function atualizarGraficoComparacao() {
+            const realizado = parseFloat(document.getElementById('realizado-total')?.textContent || 0);
+            const planejado = parseFloat(document.getElementById('planejado-total')?.textContent || 0);
+            const restante = Math.max(0, planejado - realizado);
+            
+            comparacaoChart.data.datasets[0].data = [realizado, restante];
+            comparacaoChart.update();
+        }
+        
+        /**
+         * Atualiza o gráfico de evolução temporal
+         */
+        function atualizarGraficoEvolucao() {
+            evolucaoChart.data.labels = seriesTempo.timestamps.map(t => new Date(t));
+            evolucaoChart.data.datasets[0].data = seriesTempo.realizado;
+            evolucaoChart.data.datasets[1].data = seriesTempo.planejado;
+            evolucaoChart.update();
+        }
+        
+        /**
+         * Atualiza o gráfico de histórico
+         */
+        function atualizarGraficoHistorico() {
+            if (!historicoChart || snapshots.length === 0) return;
+            
+            // Ordenar snapshots por data
+            const snapshotsOrdenados = [...snapshots].sort((a, b) => new Date(a.data) - new Date(b.data));
+            
+            historicoChart.data.labels = snapshotsOrdenados.map(s => new Date(s.data));
+            historicoChart.data.datasets[0].data = snapshotsOrdenados.map(s => parseFloat(s.realizadoTotal));
+            historicoChart.data.datasets[1].data = snapshotsOrdenados.map(s => parseFloat(s.eficiencia.replace('%', '')));
+            historicoChart.update();
+        }
+        
+        /**
+         * Atualiza a seção de análise de eficiência
+         */
+        function atualizarAnaliseEficiencia() {
+            const eficienciaGlobal = parseFloat(document.getElementById('eficiencia-valor').textContent.replace('%', ''));
+            document.getElementById('analise-eficiencia-global').textContent = `${eficienciaGlobal.toFixed(1)}%`;
+            document.getElementById('analise-eficiencia-global-barra').style.width = `${eficienciaGlobal}%`;
+            
+            // Texto de análise
+            let textoAnalise = '';
+            if (eficienciaGlobal >= 90) {
+                textoAnalise = 'Excelente eficiência! A operação está acima das expectativas.';
+            } else if (eficienciaGlobal >= 75) {
+                textoAnalise = 'Boa eficiência. A operação está dentro do esperado.';
+            } else if (eficienciaGlobal >= 50) {
+                textoAnalise = 'Eficiência média. Há espaço para melhorias.';
+            } else {
+                textoAnalise = 'Eficiência baixa. Atenção necessária para identificar gargalos.';
+            }
+            document.getElementById('analise-eficiencia-texto').textContent = textoAnalise;
+            
+            // Eficiência por frente
+            const containerEficienciaFrentes = document.getElementById('analise-eficiencia-frentes');
+            containerEficienciaFrentes.innerHTML = '';
+            
+            FRENTES.forEach(frente => {
+                const realizado = parseFloat(document.getElementById(`realizado-${frente}`)?.value || 0);
+                const planCota = parseFloat(document.getElementById(`plan-cota-${frente}`)?.textContent || 0);
+                
+                let eficienciaFrente = 0;
+                if (planCota > 0) {
+                    eficienciaFrente = (realizado / planCota) * 100;
+                }
+                
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span>${frente.toUpperCase()}</span>
+                        <span class="font-medium">${eficienciaFrente.toFixed(1)}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 mt-1">
+                        <div class="bg-primary h-1.5 rounded-full" style="width: ${Math.min(100, Math.max(0, eficienciaFrente))}%"></div>
+                    </div>
+                `;
+                
+                containerEficienciaFrentes.appendChild(div);
+            });
+            
+            // Projeções
+            const mediaHora = parseFloat(document.getElementById('mediaHora').textContent);
+            const previsao24 = parseFloat(document.getElementById('previsao24').textContent);
+            const planejadoMoagem = parseFloat(document.getElementById('planejadoMoagem').value);
+            
+            document.getElementById('projecao-final').textContent = `${previsao24.toFixed(0)} ton`;
+            
+            const diferencaProjecao = previsao24 - planejadoMoagem;
+            const diferencaTexto = diferencaProjecao >= 0 ? `+${diferencaProjecao.toFixed(0)}` : diferencaProjecao.toFixed(0);
+            document.getElementById('projecao-diferenca').textContent = `${diferencaTexto} ton`;
+            
+            // Definir cor da diferença
+            if (diferencaProjecao >= 0) {
+                document.getElementById('projecao-diferenca').className = 'text-xl font-bold text-success';
+            } else if (diferencaProjecao < -500) {
+                document.getElementById('projecao-diferenca').className = 'text-xl font-bold text-danger';
+            } else {
+                document.getElementById('projecao-diferenca').className = 'text-xl font-bold text-warning';
+            }
+            
+            // Recomendação
+            let recomendacao = '';
+            if (diferencaProjecao >= 500) {
+                recomendacao = 'Excelente ritmo! Considere ajustar a meta ou redistribuir recursos para outras áreas.';
+            } else if (diferencaProjecao >= 0) {
+                recomendacao = 'Bom ritmo. Continue mantendo a produção constante.';
+            } else if (diferencaProjecao >= -500) {
+                recomendacao = 'Produção levemente abaixo do planejado. Monitore para evitar maior desvio.';
+            } else {
+                recomendacao = 'Produção significativamente abaixo do planejado. Considere aumentar o ritmo ou revisar a meta.';
+            }
+            document.getElementById('projecao-recomendacao').textContent = recomendacao;
+        }
+        
+        // ===== Funções de Cálculo =====
+        
+        /**
+         * Atualiza o horário atual e retorna a data
+         * @returns {Date} Data e hora atuais
+         */
+        function atualizarDataHoraAtual() {
+            const agora = new Date();
+            document.getElementById('dataHoraAtual').textContent = agora.toLocaleString('pt-BR');
+            return agora;
+        }
+        
+        /**
+         * Inicializa a data/hora de início com valor padrão
+         * @returns {Date} Data e hora de início
+         */
+        function inicializarDataHoraInicio() {
+            const dataInicio = new Date();
+            dataInicio.setHours(6, 0, 0, 0); // Iniciar às 6:00 do dia atual
+            
+            const input = document.getElementById('dataHoraInicio');
+            const formattedDate = dataInicio.toISOString().slice(0, 16);
+            input.value = formattedDate;
+            
+            return dataInicio;
+        }
+        
+        /**
+         * Calcula o tempo decorrido em horas
+         * @param {Date} dataInicio - Data e hora de início
+         * @param {Date} dataAtual - Data e hora atuais
+         * @returns {number} Tempo decorrido em horas
+         */
+        function calcularTempoDecorrido(dataInicio, dataAtual) {
+            const diferencaMs = dataAtual - dataInicio;
+            const diferencaHoras = diferencaMs / (1000 * 60 * 60);
+            return Math.max(0, diferencaHoras); // Garantir que não seja negativo
+        }
+        
+        /**
+         * Calcula o tempo restante para completar a cota
+         * @param {number} realizado - Total realizado
+         * @param {number} planejado - Total planejado
+         * @param {number} mediaHora - Média de produção por hora
+         * @returns {number} Tempo restante em horas
+         */
+        function calcularTempoRestanteCota(realizado, planejado, mediaHora) {
+            if (mediaHora <= 0 || realizado >= planejado) {
+                return null;
+            }
+            
+            const restante = planejado - realizado;
+            return restante / mediaHora;
+        }
+        
+        /**
+         * Calcula o tempo restante até o fim do turno (24h desde o início)
+         * @param {Date} dataInicio - Data e hora de início
+         * @param {Date} dataAtual - Data e hora atual
+         * @returns {number} Tempo restante em horas
+         */
+        function calcularTempoRestanteTurno(dataInicio, dataAtual) {
+            const tempoDecorrido = calcularTempoDecorrido(dataInicio, dataAtual);
+            return Math.max(0, 24 - tempoDecorrido);
+        }
+        
+        /**
+         * Calcula o total das cotas
+         * @returns {number} Soma de todas as cotas
+         */
+        function calcularTotalCota() {
+            let total = 0;
+            
+            FRENTES.forEach(frente => {
+                total += parseFloat(document.getElementById(`cota-${frente}`)?.value || 0);
+            });
+            
+            return total;
+        }
+        
+        /**
+         * Atualiza o status geral com base nas posições
+         * @param {number} posicaoCotaTotal - Posição total em relação à cota
+         * @param {number} eficiencia - Eficiência em percentual
+         */
+        function atualizarStatusGeral(posicaoCotaTotal, eficiencia) {
+            const statusGeral = document.getElementById('statusGeral');
+            const statusTexto = document.getElementById('statusTexto');
+            const statusDetalhes = document.getElementById('statusDetalhes');
+            const statusIcon = document.getElementById('statusIcon');
+            
+            let icone, texto, classe, detalhes;
+            
+            if (posicaoCotaTotal > 500) {
+                icone = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+                texto = 'Produção Acima do Planejado';
+                classe = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
+                detalhes = `Excelente! A produção está ${Math.abs(posicaoCotaTotal).toFixed(0)} toneladas acima da cota planejada.`;
+            } else if (posicaoCotaTotal >= 0) {
+                icone = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>';
+                texto = 'Produção Conforme o Planejado';
+                classe = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
+                detalhes = 'A produção está alinhada com a cota planejada para o período atual.';
+            } else if (posicaoCotaTotal >= -500) {
+                icone = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>';
+                texto = 'Atenção: Leve Desvio';
+                classe = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
+                detalhes = `A produção está ${Math.abs(posicaoCotaTotal).toFixed(0)} toneladas abaixo da cota planejada. Monitore a situação.`;
+            } else {
+                icone = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+                texto = 'Alerta: Desvio Significativo';
+                classe = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
+                detalhes = `A produção está ${Math.abs(posicaoCotaTotal).toFixed(0)} toneladas abaixo da cota planejada. Ação imediata recomendada.`;
+            }
+            
+            statusIcon.innerHTML = icone;
+            statusTexto.textContent = texto;
+            statusDetalhes.textContent = detalhes;
+            
+            // Remover classes anteriores
+            statusGeral.className = 'p-4 rounded-lg mb-4 ' + classe;
+            
+            // Verificar frentes problemáticas
+            const frentesProblematicas = FRENTES.filter(frente => {
+                const posicaoCota = parseFloat(document.getElementById(`posicao-cota-${frente}`)?.textContent || 0);
+                return posicaoCota < -200; // Frentes com mais de 200 toneladas abaixo do planejado
+            });
+            
+            // Atualizar seção de alertas
+            atualizarAlertas(frentesProblematicas, posicaoCotaTotal, eficiencia);
+        }
+        
+        /**
+         * Atualiza a seção de alertas
+         * @param {Array} frentesProblematicas - Lista de frentes com problemas
+         * @param {number} posicaoCotaTotal - Posição total em relação à cota
+         * @param {number} eficiencia - Eficiência em percentual
+         */
+        function atualizarAlertas(frentesProblematicas, posicaoCotaTotal, eficiencia) {
+            if (!configSistema.mostrarAlertas) {
+                document.getElementById('alertas-container').innerHTML = '<div class="text-gray-500 dark:text-gray-400 text-sm">Alertas desativados nas configurações.</div>';
+                return;
+            }
+            
+            const alertasContainer = document.getElementById('alertas-container');
+            alertasContainer.innerHTML = '';
+            
+            // Alertas baseados nas frentes problemáticas
+            if (frentesProblematicas.length > 0) {
+                const alertaFrente = document.createElement('div');
+                alertaFrente.className = 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100 p-3 rounded-md flex items-start';
+                alertaFrente.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mt-0.5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                        <span class="font-medium">Frentes abaixo do planejado: </span>
+                        ${frentesProblematicas.map(f => f.toUpperCase()).join(', ')}. Verifique essas frentes prioritariamente.
+                    </div>
+                `;
+                alertasContainer.appendChild(alertaFrente);
+            }
+            
+            // Alerta baseado na eficiência
+            if (eficiencia < 70) {
+                const alertaEficiencia = document.createElement('div');
+                alertaEficiencia.className = 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-100 p-3 rounded-md flex items-start mt-2';
+                alertaEficiencia.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mt-0.5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <div>
+                        <span class="font-medium">Baixa eficiência: </span>
+                        A eficiência atual está em ${eficiencia.toFixed(1)}%. Considere ações para aumentar a produtividade.
+                    </div>
+                `;
+                alertasContainer.appendChild(alertaEficiencia);
+            }
+            
+            // Alerta de desvio significativo
+            if (posicaoCotaTotal < -1000) {
+                const alertaDesvio = document.createElement('div');
+                alertaDesvio.className = 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100 p-3 rounded-md flex items-start mt-2';
+                alertaDesvio.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mt-0.5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                        <span class="font-medium">Desvio crítico: </span>
+                        A produção está ${Math.abs(posicaoCotaTotal).toFixed(0)} toneladas abaixo do planejado. Reavalie o plano ou aumente significativamente a produção.
+                    </div>
+                `;
+                alertasContainer.appendChild(alertaDesvio);
+            }
+            
+            // Mensagem se não houver alertas
+            if (alertasContainer.children.length === 0) {
+                alertasContainer.innerHTML = '<div class="text-gray-500 dark:text-gray-400 text-sm">Nenhum alerta no momento. Tudo está de acordo com o planejado.</div>';
+            }
+        }
+        
+        /**
+         * Atualiza a barra de eficiência
+         * @param {number} realizado - Total realizado
+         * @param {number} planejado - Total planejado
+         */
+        function atualizarEficiencia(realizado, planejado) {
+            if (planejado <= 0) return 0;
+            
+            const eficiencia = (realizado / planejado) * 100;
+            const eficienciaFormatada = Math.min(100, Math.max(0, eficiencia)).toFixed(1);
+            
+            document.getElementById('eficiencia-valor').textContent = `${eficienciaFormatada}%`;
+            document.getElementById('eficiencia-kpi').textContent = `${eficienciaFormatada}%`;
+            
+            const barra = document.getElementById('eficiencia-barra');
+            const barraKpi = document.getElementById('eficiencia-barra-kpi');
+            
+            barra.style.width = `${eficienciaFormatada}%`;
+            barraKpi.style.width = `${eficienciaFormatada}%`;
+            
+            // Definir cor baseada na eficiência
+            if (eficiencia >= 90) {
+                barra.className = 'bg-success h-2.5 rounded-full transition-all duration-500';
+                barraKpi.className = 'bg-success h-1.5 rounded-full transition-all duration-500';
+            } else if (eficiencia >= 70) {
+                barra.className = 'bg-primary h-2.5 rounded-full transition-all duration-500';
+                barraKpi.className = 'bg-primary h-1.5 rounded-full transition-all duration-500';
+            } else if (eficiencia >= 50) {
+                barra.className = 'bg-warning h-2.5 rounded-full transition-all duration-500';
+                barraKpi.className = 'bg-warning h-1.5 rounded-full transition-all duration-500';
+            } else {
+                barra.className = 'bg-danger h-2.5 rounded-full transition-all duration-500';
+                barraKpi.className = 'bg-danger h-1.5 rounded-full transition-all duration-500';
+            }
+            
+            return eficiencia;
+        }
+        
+        /**
+         * Colorir os valores de posição com base no valor
+         * @param {string} elementId - ID do elemento
+         * @param {number} valor - Valor a ser analisado
+         */
+        function colorirPosicao(elementId, valor) {
+            const elemento = document.getElementById(elementId);
+            
+            if (valor > 0) {
+                elemento.className = 'px-4 py-2 text-success font-medium';
+            } else if (valor < 0) {
+                elemento.className = 'px-4 py-2 text-danger font-medium';
+            } else {
+                elemento.className = 'px-4 py-2';
+            }
+        }
+        
+        /**
+         * Calcula a seção de caminhões
+         */
+        function calcularCaminhoes() {
+            const proprios = parseFloat(document.getElementById('caminhoes-proprios').value) || 0;
+            const terceiros = parseFloat(document.getElementById('caminhoes-terceiros').value) || 0;
+            const total = proprios + terceiros;
+            
+            document.getElementById('caminhoes-total').textContent = total;
+            
+            // Calcular percentuais
+            if (total > 0) {
+                const percentualProprios = (proprios / total) * 100;
+                const percentualTerceiros = (terceiros / total) * 100;
+                
+                document.getElementById('percentual-proprios').textContent = percentualProprios.toFixed(1) + '%';
+                document.getElementById('percentual-terceiros').textContent = percentualTerceiros.toFixed(1) + '%';
+                
+                // Atualizar gráfico de barras
+                document.getElementById('grafico-proprios').style.width = `${percentualProprios}%`;
+                document.getElementById('grafico-terceiros').style.width = `${percentualTerceiros}%`;
+            } else {
+                document.getElementById('percentual-proprios').textContent = '0.0%';
+                document.getElementById('percentual-terceiros').textContent = '0.0%';
+                
+                document.getElementById('grafico-proprios').style.width = '50%';
+                document.getElementById('grafico-terceiros').style.width = '50%';
+            }
+            
+            // Calcular taxa de entrega (caminhões/hora)
+            const tempoDecorrido = parseFloat(document.getElementById('tempoDecorrido').textContent) || 0;
+            let taxaEntrega = 0;
+            
+            if (tempoDecorrido > 0) {
+                taxaEntrega = total / tempoDecorrido;
+            }
+            
+            document.getElementById('taxa-entrega').textContent = taxaEntrega.toFixed(1);
+            
+            // Salvar os dados após a atualização
+            salvarDados();
+        }
+        
+        /**
+         * Função principal que realiza todos os cálculos
+         */
+        function calcularTudo() {
+            try {
+                const dataInicio = new Date(document.getElementById('dataHoraInicio').value);
+                const dataAtual = atualizarDataHoraAtual();
+                
+                // Calcular tempo decorrido
+                const tempoDecorrido = calcularTempoDecorrido(dataInicio, dataAtual);
+                document.getElementById('tempoDecorrido').textContent = tempoDecorrido.toFixed(2);
+                
+                // Obter valor do planejado moagem
+                const planejadoMoagem = parseFloat(document.getElementById('planejadoMoagem').value) || 0;
+                
+                // Calcular total de cotas uma única vez
+                const totalCota = calcularTotalCota();
+                
+                // Inicializar valores de soma
+                let totalAcumulado = 0;
+                let totalPlanejado = 0;
+                let totalTH = 0;
+                let totalPlanCota = 0;
+                let totalRealizado = 0;
+                let totalEstoque = 0;
+                let totalEstoque6h = 0;
+                
+                // Calcular para cada frente
+                FRENTES.forEach(frente => {
+                    // Obter valores de entrada
+                    const cota = parseFloat(document.getElementById(`cota-${frente}`)?.value || 0);
+                    const realizado = parseFloat(document.getElementById(`realizado-${frente}`)?.value || 0);
+                    const estoque = parseFloat(document.getElementById(`estoque-${frente}`)?.value || 0);
+                    const estoque6h = parseFloat(document.getElementById(`estoque6h-${frente}`)?.value || 0);
+                    
+                    // Calcular valores
+                    const th = totalCota > 0 ? cota / 24 : 0;
+                    const acumulado = totalCota > 0 ? cota / totalCota : 0;
+                    const planejado = acumulado * planejadoMoagem;
+                    const planCota = th * tempoDecorrido;
+                    const posicaoCota = (realizado + estoque - estoque6h) - planCota;
+                    const posicaoMoagem = realizado - (planejado / 24 * tempoDecorrido);
+                    
+                    // Atualizar na tabela
+                    document.getElementById(`acumulado-${frente}`).textContent = formatarNumero(acumulado);
+                    document.getElementById(`planejado-${frente}`).textContent = formatarNumero(planejado);
+                    document.getElementById(`th-${frente}`).textContent = formatarNumero(th);
+                    document.getElementById(`plan-cota-${frente}`).textContent = formatarNumero(planCota);
+                    document.getElementById(`posicao-cota-${frente}`).textContent = formatarNumero(posicaoCota);
+                    document.getElementById(`posicao-moagem-${frente}`).textContent = formatarNumero(posicaoMoagem);
+                    
+                    // Colorir posições
+                    colorirPosicao(`posicao-cota-${frente}`, posicaoCota);
+                    colorirPosicao(`posicao-moagem-${frente}`, posicaoMoagem);
+                    
+                    // Acumular totais
+                    totalAcumulado += acumulado;
+                    totalPlanejado += planejado;
+                    totalTH += th;
+                    totalPlanCota += planCota;
+                    totalRealizado += realizado;
+                    totalEstoque += estoque;
+                    totalEstoque6h += estoque6h;
+                });
+                
+                // Calcular posições totais
+                const totalPosicaoCota = (totalRealizado + totalEstoque - totalEstoque6h) - totalPlanCota;
+                const totalPosicaoMoagem = totalRealizado - (totalPlanejado / 24 * tempoDecorrido);
+                
+                // Atualizar totais na tabela
+                document.getElementById('acumulado-total').textContent = formatarNumero(totalAcumulado);
+                document.getElementById('planejado-total').textContent = formatarNumero(totalPlanejado);
+                document.getElementById('cota-total').textContent = formatarNumero(totalCota);
+                document.getElementById('th-total').textContent = formatarNumero(totalTH);
+                document.getElementById('plan-cota-total').textContent = formatarNumero(totalPlanCota);
+                document.getElementById('realizado-total').textContent = formatarNumero(totalRealizado);
+                document.getElementById('estoque-total').textContent = formatarNumero(totalEstoque);
+                document.getElementById('estoque6h-total').textContent = formatarNumero(totalEstoque6h);
+                document.getElementById('posicao-cota-total').textContent = formatarNumero(totalPosicaoCota);
+                document.getElementById('posicao-moagem-total').textContent = formatarNumero(totalPosicaoMoagem);
+                
+                // Atualizar KPI de realizado total
+                document.getElementById('kpi-realizado').textContent = formatarNumero(totalRealizado);
+                
+                // Colorir posições totais
+                colorirPosicao('posicao-cota-total', totalPosicaoCota);
+                colorirPosicao('posicao-moagem-total', totalPosicaoMoagem);
+                
+                // Calcular média/hora e previsão/24
+                let mediaHora = 0;
+                let previsao24 = 0;
+                
+                if (tempoDecorrido > 0) {
+                    mediaHora = totalRealizado / tempoDecorrido;
+                    previsao24 = mediaHora * 24;
+                }
+                
+                document.getElementById('mediaHora').textContent = formatarNumero(mediaHora);
+                document.getElementById('previsao24').textContent = formatarNumero(previsao24);
+                
+                // Calcular tempo restante
+                const tempoRestanteCota = calcularTempoRestanteCota(totalRealizado, totalPlanejado, mediaHora);
+                const tempoRestanteTurno = calcularTempoRestanteTurno(dataInicio, dataAtual);
+                
+                document.getElementById('tempo-restante-cota').textContent = formatarTempo(tempoRestanteCota);
+                document.getElementById('tempo-restante-turno').textContent = formatarTempo(tempoRestanteTurno);
+                
+                // Atualizar eficiência
+                const eficiencia = atualizarEficiencia(totalRealizado, totalPlanCota);
+                
+                // Atualizar status geral
+                atualizarStatusGeral(totalPosicaoCota, eficiencia);
+                
+                // Calcular caminhões
+                calcularCaminhoes();
+                
+                // Atualizar análise de eficiência se a aba estiver ativa
+                if (document.getElementById('painel-graficos').classList.contains('active')) {
+                    atualizarAnaliseEficiencia();
+                }
+                
+                // Atualizar gráficos
+                atualizarGraficos();
+                
+                // Salvar os dados após a atualização
+                if (configSistema.salvarDados) {
+                    salvarDados();
+                }
+            } catch (erro) {
+                console.error('Erro ao calcular:', erro);
+                mostrarToast('Erro ao calcular dados. Verifique o console para detalhes.', 'erro');
+            }
+        }
+        
+        // ===== Inicialização e Event Listeners =====
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar tooltips
+            tippy('.tooltip', {
+                animation: 'scale',
+                theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+            });
+            
+            // Tentar carregar dados salvos
+            carregarDados();
+            
+            // Gerar linhas da tabela inicialmente se não foram carregadas
+            if (document.getElementById('tabelaFrentes').children.length === 0) {
+                gerarLinhasTabela();
+            }
+            
+            // Inicializar data/hora de início se não carregada
+            if (!document.getElementById('dataHoraInicio').value) {
+                inicializarDataHoraInicio();
+            }
+            
+            // Inicializar gráficos
+            inicializarGraficos();
+            
+            // Realizar o cálculo inicial
+            calcularTudo();
+            
+            // Configurar navegação por abas
+            const tabLinks = document.querySelectorAll('.nav-tab');
+            tabLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Remover classe ativa de todas as abas
+                    tabLinks.forEach(tab => {
+                        tab.classList.remove('border-primary', 'text-primary', 'active');
+                        tab.classList.add('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
+                    });
+                    
+                    // Adicionar classe ativa à aba clicada
+                    this.classList.remove('border-transparent', 'hover:text-gray-600', 'hover:border-gray-300');
+                    this.classList.add('border-primary', 'text-primary', 'active');
+                    
+                    // Esconder todos os painéis
+                    document.querySelectorAll('.tab-pane').forEach(pane => {
+                        pane.classList.add('hidden');
+                        pane.classList.remove('active');
+                    });
+                    
+                    // Mostrar o painel correspondente
+                    const targetId = this.getAttribute('data-target');
+                    const targetPane = document.getElementById(targetId);
+                    targetPane.classList.remove('hidden');
+                    targetPane.classList.add('active');
+                    
+                    // Inicializar gráficos específicos da aba, se necessário
+                    if (targetId === 'painel-graficos' && !progressoChart) {
+                        inicializarGraficosAnalise();
+                        atualizarAnaliseEficiencia();
+                    } else if (targetId === 'painel-historico' && !historicoChart && snapshots.length > 0) {
+                        inicializarGraficoHistorico();
+                    }
+                });
+            });
+            
+            // Configurar botão de nova frente
+            document.getElementById('btnAdicionarFrente').addEventListener('click', function() {
+                document.getElementById('novaFrenteModal').classList.remove('hidden');
+                document.getElementById('novaFrenteId').value = '';
+                document.getElementById('novaFrenteCota').value = '1500';
+                document.getElementById('novaFrenteRealizado').value = '0';
+                document.getElementById('novaFrenteEstoque').value = '0';
+                document.getElementById('novaFrenteEstoque6h').value = '0';
+            });
+            
+            document.getElementById('cancelarNovaFrente').addEventListener('click', function() {
+                document.getElementById('novaFrenteModal').classList.add('hidden');
+            });
+            
+            document.getElementById('salvarNovaFrente').addEventListener('click', adicionarFrente);
+            
+            // Configurar botão de criar snapshot
+            document.getElementById('btnCriarSnapshot').addEventListener('click', function() {
+                document.getElementById('snapshotModal').classList.remove('hidden');
+                document.getElementById('snapshotDescricao').value = '';
+            });
+            
+            document.getElementById('cancelarSnapshot').addEventListener('click', function() {
+                document.getElementById('snapshotModal').classList.add('hidden');
+            });
+            
+            document.getElementById('salvarSnapshot').addEventListener('click', criarSnapshot);
+            
+            // Configurar botões da barra de ações
+            document.getElementById('btnExportar').addEventListener('click', exportarCSV);
+            document.getElementById('btnResetarDados').addEventListener('click', function() {
+                mostrarConfirmacao('Tem certeza que deseja resetar todos os dados? Esta ação não pode ser desfeita.', resetarDados);
+            });
+            document.getElementById('btnImprimir').addEventListener('click', imprimirPagina);
+            document.getElementById('btnAjuda').addEventListener('click', iniciarTour);
+            
+            // Configurar botões de configurações
+            document.getElementById('btnExportarBackup').addEventListener('click', exportarBackup);
+            document.getElementById('btnLimparSnapshots').addEventListener('click', function() {
+                mostrarConfirmacao('Tem certeza que deseja limpar todos os snapshots? Esta ação não pode ser desfeita.', limparSnapshots);
+            });
+            document.getElementById('btnLimparTodosDados').addEventListener('click', function() {
+                mostrarConfirmacao('Tem certeza que deseja limpar TODOS os dados, incluindo configurações? Esta ação não pode ser desfeita.', limparTodosDados);
+            });
+            
+            // Evento para importar backup
+            document.getElementById('importarBackup').addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    importarBackup(e.target.files[0]);
+                }
+            });
+            
+            // Salvar configurações
+            document.getElementById('btnSalvarConfiguracoes').addEventListener('click', function() {
+                configSistema.atualizarAutomatico = document.getElementById('cfg-atualizar-automatico').checked;
+                configSistema.salvarDados = document.getElementById('cfg-salvar-dados').checked;
+                configSistema.mostrarAlertas = document.getElementById('cfg-mostrar-alertas').checked;
+                configSistema.intervaloAtualizacao = parseInt(document.getElementById('cfg-intervalo-atualizacao').value);
+                configSistema.limiarCritico = parseFloat(document.getElementById('cfg-limiar-critico').value);
+                configSistema.limiarAtencao = parseFloat(document.getElementById('cfg-limiar-atencao').value);
+                
+                // Salvar no localStorage
+                if (window.localStorage) {
+                    localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(configSistema));
+                }
+                
+                // Atualizar intervalo de atualização automática
+                if (intervaloAtualizacao) {
+                    clearInterval(intervaloAtualizacao);
+                }
+                
+                if (configSistema.atualizarAutomatico) {
+                    intervaloAtualizacao = setInterval(calcularTudo, configSistema.intervaloAtualizacao * 1000);
+                }
+                
+                // Recalcular para aplicar novas configurações
+                calcularTudo();
+                
+                mostrarToast('Configurações salvas com sucesso!');
+            });
+            
+            // Botões de período para o gráfico de evolução
+            document.querySelectorAll('[data-period]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('[data-period]').forEach(b => {
+                        b.classList.remove('bg-primary', 'text-white');
+                        b.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                    });
+                    
+                    this.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                    this.classList.add('bg-primary', 'text-white');
+                    
+                    // TODO: Ajustar período do gráfico de evolução
+                });
+            });
+            
+            // Adicionar event listeners para todos os inputs
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('input', calcularTudo);
+            });
+            
+            // Atualizar a cada X segundos (conforme configuração)
+            if (configSistema.atualizarAutomatico) {
+                intervaloAtualizacao = setInterval(calcularTudo, configSistema.intervaloAtualizacao * 1000);
+            }
+            
+            // Verificar se é primeiro acesso para mostrar tour
+            const primeiroAcesso = !localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (primeiroAcesso) {
+                // Dar um tempo para a interface carregar completamente
+                setTimeout(iniciarTour, 1000);
+            }
+        });
+    </script>
+</body>
+</html>
